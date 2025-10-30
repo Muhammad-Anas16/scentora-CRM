@@ -14,10 +14,11 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingCart, Users, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, BarChart3, Box } from "lucide-react";
 
 const links = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "product", href: "/product", icon: Box },
   { name: "Orders", href: "/orders", icon: ShoppingCart },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
