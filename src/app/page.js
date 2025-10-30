@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { use, useEffect } from "react";
 import { Users, ShoppingBag, DollarSign, MessageSquare } from "lucide-react";
 import {
   LineChart,
@@ -11,6 +11,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProducts } from "@/Redux/features/productsSlice/productsSlice";
 
 const salesData = [
   { month: "Jan", revenue: 2500, orders: 400 },
@@ -37,6 +39,21 @@ const recentOrders = [
 ];
 
 export default function Home() {
+
+  const dispatch = useDispatch();
+
+  const { products, loading, error } = useSelector((state) => state.products);
+
+  useEffect(() => {
+    dispatch(fetchProducts());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!loading && !error) {
+      console.log("Products in component:", products);
+    }
+  }, [products, loading, error]);
+
   return (
     <div className="space-y-10">
       {/* Title */}

@@ -63,14 +63,14 @@ const ProductComp = () => {
             <Plus size={16} />
             Add New Product
           </button>
-          <button className="flex items-center gap-2 border px-4 py-2 rounded-md hover:bg-gray-100">
+          {/* <button className="flex items-center gap-2 border px-4 py-2 rounded-md hover:bg-gray-100">
             <Filter size={16} />
             Filter
           </button>
           <button className="flex items-center gap-2 border px-4 py-2 rounded-md hover:bg-gray-100">
             <Download size={16} />
             Export
-          </button>
+          </button> */}
         </div>
       </div>
 

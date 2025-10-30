@@ -193,8 +193,7 @@ const AnalyticsComp = () => {
       </div>
 
       {/* Customer Segmentation & Insights */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Segmentation Pie */}
+      {/* <div className="grid lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow">
           <h3 className="font-medium mb-2">Customer Segmentation</h3>
           <p className="text-gray-500 text-sm mb-4">
@@ -220,8 +219,6 @@ const AnalyticsComp = () => {
             </PieChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Recent Activity */}
         <div className="bg-white p-6 rounded-xl shadow">
           <h3 className="font-medium mb-2">Recent Activity & Insights</h3>
           <ul className="mt-3 space-y-3 text-sm text-gray-700">
@@ -231,7 +228,7 @@ const AnalyticsComp = () => {
             <li>💰 “Sonnet Fresh Dew” revenue increased by 15% this week.</li>
           </ul>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -62,7 +62,14 @@ const CustomerOverview = () => {
 
       {/* Filter Section */}
       <div className="bg-white p-6 rounded-xl shadow mb-6">
-        <h2 className="text-lg font-medium mb-4">Filter Customers</h2>
+
+        <input
+          type="text"
+          placeholder="Search by Name or Email"
+          className="border rounded-md p-2 w-[50%] focus:ring-2 focus:ring-amber-400 outline-none"
+        />
+
+        {/* <h2 className="text-lg font-medium mb-4">Filter Customers</h2>
 
         <div className="grid md:grid-cols-5 gap-4 mb-4">
           <input
@@ -106,25 +113,24 @@ const CustomerOverview = () => {
           <button className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
             Apply Filters
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-4 border-b">
+      {/* <div className="flex gap-4 mb-4 border-b">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-2 font-medium ${
-              activeTab === tab
+            className={`pb-2 font-medium ${activeTab === tab
                 ? "border-b-2 border-black text-black"
                 : "text-gray-500 hover:text-black"
-            }`}
+              }`}
           >
             {tab}
           </button>
         ))}
-      </div>
+      </div> */}
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow overflow-x-auto">
@@ -148,7 +154,7 @@ const CustomerOverview = () => {
               >
                 <td className="px-6 py-4 flex items-center gap-3">
                   <img
-                    src={cust.avatar || "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80" }
+                    src={cust.avatar || "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80"}
                     alt={cust.name || "Avatar"}
                     className="w-8 h-8 rounded-full object-cover"
                   />
@@ -160,13 +166,12 @@ const CustomerOverview = () => {
                 <td className="px-6 py-4">{cust.feedback}</td>
                 <td className="px-6 py-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      cust.status === "Active"
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${cust.status === "Active"
                         ? "bg-green-100 text-green-700"
                         : cust.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
                   >
                     {cust.status}
                   </span>

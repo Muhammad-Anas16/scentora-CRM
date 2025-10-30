@@ -57,7 +57,7 @@ export default function LayoutWrapper({ children }) {
         <div className="flex items-center justify-between mb-4">
           {/* ✅ This now works properly on mobile */}
           <SidebarTrigger className="md:hidden" />
-          <Topbar />
+          {/* <Topbar /> */}
         </div>
         <div className="flex-1">{children}</div>
       </main>
