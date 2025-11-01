@@ -11,7 +11,7 @@ export async function POST(req) {
         if (existingUser) {
             return helperFunction(400, null, true, "User already exists");
         }
-        const hashedPassword = await bcrypt.hash(password, process.env.SALT);
+        const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT));
         const newUser = await User.create({
             username,
             email,
@@ -20,6 +20,6 @@ export async function POST(req) {
         const { password: _, ...userWithoutPassword } = newUser.toObject();
         return helperFunction(201, { user: userWithoutPassword }, false, "User registered successfully");
     } catch (error) {
-        return helperFunction(500, null, true, "Internal server error");
+        return helperFunction(500, null, true, error.message);
     }
 }

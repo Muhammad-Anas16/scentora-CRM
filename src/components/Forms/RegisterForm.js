@@ -1,17 +1,19 @@
 "use client";
-import React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { registerSchema } from "./schema";
 import { useRouter } from "next/navigation";
+import axios from "axios";
+import { toast } from "sonner";
 
 const RegisterForm = () => {
+  const [submitValue, setSubmitValue] = useState("Register");
+  const router = useRouter();
 
-    const router = useRouter();
-  
-    const handleClick = () => {
-      router.push("/auth/login");
-    };
+  const handleClick = () => {
+    router.push("/auth/login");
+  };
 
   const {
     register,
@@ -21,14 +23,33 @@ const RegisterForm = () => {
     resolver: yupResolver(registerSchema),
   });
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     console.log("✅ Form Data:", data);
+
+    try {
+      setSubmitValue("Registering...");
+      const response = await axios.post("/api/register", data);
+      console.log(response.data);
+
+      if (!response.data.error) {
+        toast.success(response.data.message);
+        setSubmitValue("Registered!");
+        setTimeout(() => {
+          router.push("/auth/login");
+        }, 1200);
+      } else {
+        toast.error(response.data.message);
+        setSubmitValue("Register");
+      }
+    } catch (error) {
+      setSubmitValue("Register");
+      console.error("❌ Registration error:", error.message);
+      toast.error("An error occurred during registration. Please try again.");
+    }
   };
 
   return (
-    <div 
-    // className="h-screen w-full flex items-center justify-center bg-[url('/background.avif')] bg-cover bg-center"
-    >
+    <div>
       <div className="absolute inset-0 bg-white/40 backdrop-blur-sm z-0"></div>
       <div className="relative z-10 bg-white/90 rounded-xl shadow-xl w-full max-w-md p-8 text-center">
         <h2 className="text-2xl font-serif text-gray-800 mb-2">Create Account</h2>
@@ -92,16 +113,20 @@ const RegisterForm = () => {
             type="submit"
             className="w-full bg-black text-white font-semibold py-2 rounded-md hover:bg-gray-900 transition"
           >
-            Register
+            {submitValue}
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-6">
           Already have an account?{" "}
-          <span onClick={handleClick} className="font-medium text-gray-800 hover:underline cursor-pointer">
+          <span
+            onClick={handleClick}
+            className="font-medium text-gray-800 hover:underline cursor-pointer"
+          >
             Login
           </span>
         </p>
       </div>
+
       <div className="absolute bottom-4 left-4 text-xs text-gray-500 flex items-center space-x-1 z-10">
         <span>Made with</span>
         <span className="text-purple-600 font-bold">❤</span>

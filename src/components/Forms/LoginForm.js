@@ -1,11 +1,15 @@
 "use client";
-import React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { loginSchema } from "./schema"; 
+import { loginSchema } from "./schema";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import axios from "axios";
+import Cookies from "js-cookie";
 
 const LoginForm = () => {
+  const [submitValue, setSubmitValue] = useState("Login");
 
   const router = useRouter();
 
@@ -22,12 +26,34 @@ const LoginForm = () => {
     resolver: yupResolver(loginSchema),
   });
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     console.log("✅ Form Data:", data);
+
+    try {
+      setSubmitValue("Logging in...");
+      const response = await axios.post("/api/login", data);
+      console.log(response.data);
+
+      if (!response.data.error) {
+        toast.success(response.data.message);
+        Cookies.set("token", response.data.data.token);
+        setSubmitValue("Logged in!");
+        setTimeout(() => {
+          router.push("/");
+        }, 1200);
+      } else {
+        toast.error(response.data.message);
+        setSubmitValue("Login");
+      }
+    } catch (error) {
+      setSubmitValue("Login");
+      console.error("❌ login in error:", error.message);
+      toast.error("An error occurred during login. Please try again.");
+    }
   };
 
   return (
-    <div 
+    <div
     // className="h-screen w-full flex items-center justify-center bg-[url('/background.avif')] bg-cover bg-center"
     >
       <div className="absolute inset-0 bg-white/40 backdrop-blur-sm z-0"></div>
@@ -45,8 +71,8 @@ const LoginForm = () => {
               placeholder="your@example.com"
               {...register("email")}
               className={`w-full mt-1 px-3 py-2 text-black border rounded-md bg-gray-100 focus:outline-none focus:ring-2 ${errors.email
-                  ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-gray-400"
+                ? "border-red-500 focus:ring-red-400"
+                : "border-gray-300 focus:ring-gray-400"
                 }`}
             />
             {errors.email && (
@@ -62,8 +88,8 @@ const LoginForm = () => {
               placeholder="••••••••"
               {...register("password")}
               className={`w-full mt-1 px-3 py-2 text-black border rounded-md bg-gray-100 focus:outline-none focus:ring-2 ${errors.password
-                  ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-gray-400"
+                ? "border-red-500 focus:ring-red-400"
+                : "border-gray-300 focus:ring-gray-400"
                 }`}
             />
             {errors.password && (
@@ -86,7 +112,7 @@ const LoginForm = () => {
             type="submit"
             className="w-full bg-black text-white font-semibold py-2 rounded-md hover:bg-gray-900 transition"
           >
-            Register
+            {submitValue}
           </button>
         </form>
 
