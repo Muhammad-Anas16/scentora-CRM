@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useEffect } from "react";
+import React from "react";
 import { Users, ShoppingBag, DollarSign, MessageSquare } from "lucide-react";
 import {
   LineChart,
@@ -11,8 +11,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchProducts } from "@/Redux/features/productsSlice/productsSlice";
 
 const salesData = [
   { month: "Jan", revenue: 2500, orders: 400 },

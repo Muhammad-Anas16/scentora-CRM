@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,15 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const orders = [
-  { id: "ORD001", customer: "Alice Johnson", product: "Radiant Desire EDP 50ML", date: "2023-10-26", status: "Delivered", total: "Rs. 1899.00" },
-  { id: "ORD002", customer: "Bob Williams", product: "Dark Secrets EDP 50ML", date: "2023-10-27", status: "Processing", total: "Rs. 2750.00" },
-  { id: "ORD003", customer: "Charlie Brown", product: "Make My Day EDP 50ML", date: "2023-10-27", status: "Cancelled", total: "Rs. 1550.00" },
-  { id: "ORD004", customer: "Diana Miller", product: "Radiant Desire EDP 50ML", date: "2023-10-28", status: "Shipped", total: "Rs. 1899.00" },
-  { id: "ORD005", customer: "Eve Davis", product: "Raasath EDP 50ML", date: "2023-10-28", status: "Pending", total: "Rs. 2999.00" },
-  { id: "ORD006", customer: "Frank White", product: "Dreamy Delight EDP 50ML", date: "2023-10-29", status: "Delivered", total: "Rs. 1899.00" },
-  { id: "ORD007", customer: "Grace Lee", product: "Dark Secrets EDP 50ML", date: "2023-10-29", status: "Processing", total: "Rs. 2750.00" },
-];
+const currency = (n) => (typeof n === "number" ? `Rs. ${n.toFixed(2)}` : n);
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -40,7 +32,33 @@ const getStatusColor = (status) => {
 };
 
 const OrdersPageComponent = () => {
-  const [page] = useState(1);
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      try {
+        setLoading(true);
+        setError("");
+        const res = await fetch(`/api/orders?page=${page}&limit=${limit}`, { signal: controller.signal });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || "Failed to fetch");
+        setItems(json.data.items);
+        setTotal(json.data.total);
+      } catch (e) {
+        if (e.name !== "AbortError") setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+    return () => controller.abort();
+  }, [page, limit]);
 
   return (
     <div className="space-y-8">
@@ -88,12 +106,18 @@ const OrdersPageComponent = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id}</TableCell>
-                <TableCell>{order.customer}</TableCell>
+            {loading && (
+              <TableRow><TableCell colSpan={6}>Loading...</TableCell></TableRow>
+            )}
+            {error && !loading && (
+              <TableRow><TableCell colSpan={6} className="text-red-600">{error}</TableCell></TableRow>
+            )}
+            {!loading && !error && items.map((order) => (
+              <TableRow key={order._id}>
+                <TableCell className="font-medium">{order._id}</TableCell>
+                <TableCell>{order.customer?.name || "-"}</TableCell>
                 <TableCell>{order.product}</TableCell>
-                <TableCell>{order.date}</TableCell>
+                <TableCell>{new Date(order.orderDate).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <span
                     className={cn(
@@ -104,19 +128,20 @@ const OrdersPageComponent = () => {
                     {order.status}
                   </span>
                 </TableCell>
-                <TableCell className="text-right font-medium">
-                  {order.total}
-                </TableCell>
+                <TableCell className="text-right font-medium">{currency(order.amount)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
 
         {/* Pagination */}
-        <div className="flex justify-center items-center mt-6 space-x-4">
-          <Button variant="outline" size="sm">Previous</Button>
-          <div className="text-sm font-medium">1</div>
-          <Button variant="outline" size="sm">Next</Button>
+        <div className="flex justify-between items-center mt-6">
+          <div className="text-sm text-gray-600">Total: {total}</div>
+          <div className="space-x-2">
+            <Button variant="outline" size="sm" disabled={page<=1} onClick={() => setPage((p)=>p-1)}>Previous</Button>
+            <div className="inline-block text-sm font-medium">{page}</div>
+            <Button variant="outline" size="sm" disabled={(page*limit)>=total} onClick={() => setPage((p)=>p+1)}>Next</Button>
+          </div>
         </div>
       </div>
     </div>

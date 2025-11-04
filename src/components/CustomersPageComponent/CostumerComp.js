@@ -1,62 +1,64 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import CustomerForm from "@/components/Forms/CustomerForm";
 
 const CustomerOverview = () => {
-  const customers = [
-    {
-      name: "Alice Johnson",
-      email: "alice.johnson@example.com",
-      phone: "123-456-7890",
-      totalOrders: 15,
-      feedback: "Excellent service!",
-      status: "Active",
-      avatar: "https://i.pravatar.cc/40?img=1",
-    },
-    {
-      name: "Bob Williams",
-      email: "bob.williams@example.com",
-      phone: "987-654-3210",
-      totalOrders: 8,
-      feedback: "Good product quality.",
-      status: "Pending",
-      avatar: "https://i.pravatar.cc/40?img=2",
-    },
-    {
-      name: "Charlie Brown",
-      email: "charlie.b@example.com",
-      phone: "555-123-4567",
-      totalOrders: 2,
-      feedback: "Needs improvement.",
-      status: "Inactive",
-      avatar: "https://i.pravatar.cc/40?img=3",
-    },
-    {
-      name: "Diana Miller",
-      email: "diana.m@example.com",
-      phone: "222-333-4444",
-      totalOrders: 25,
-      feedback: "Very satisfied!",
-      status: "Active",
-      avatar: "https://i.pravatar.cc/40?img=4",
-    },
-    {
-      name: "Ethan Davis",
-      email: "ethan.d@example.com",
-      phone: "777-888-9999",
-      totalOrders: 1,
-      feedback: "First purchase was great.",
-      status: "Pending",
-      avatar: "https://i.pravatar.cc/40?img=5",
-    },
-  ];
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit] = useState(10);
+  const [q, setQ] = useState("");
 
-  const tabs = ["All Customers", "New Leads", "VIP Customers", "Churned Customers"];
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      try {
+        setLoading(true);
+        setError("");
+        const res = await fetch(`/api/customers?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}`, { signal: controller.signal });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || "Failed to fetch");
+        setItems(json.data.items);
+        setTotal(json.data.total);
+      } catch (e) {
+        if (e.name !== "AbortError") setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+    return () => controller.abort();
+  }, [page, limit, q]);
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-semibold mb-6">Customers Overview</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Customers Overview</h1>
+        <Sheet>
+          <SheetTrigger className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800">Add Customer</SheetTrigger>
+          <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle>Add Customer</SheetTitle>
+            </SheetHeader>
+            <div className="p-4">
+              <CustomerForm onSuccess={() => setPage(1)} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
       <div className="bg-white rounded-xl shadow overflow-x-auto">
+        <div className="p-4">
+          <input
+            value={q}
+            onChange={(e) => { setPage(1); setQ(e.target.value); }}
+            placeholder="Search by name, email, company"
+            className="border rounded-md w-full md:w-1/3 p-2 focus:ring-2 focus:ring-amber-400 outline-none"
+          />
+        </div>
         <table className="min-w-full text-sm text-left">
           <thead className="border-b bg-gray-100 text-gray-600 uppercase text-xs">
             <tr>
@@ -68,38 +70,51 @@ const CustomerOverview = () => {
             </tr>
           </thead>
           <tbody>
-            {customers.map((cust, idx) => (
+            {loading && (
+              <tr><td className="px-6 py-4" colSpan={5}>Loading...</td></tr>
+            )}
+            {error && !loading && (
+              <tr><td className="px-6 py-4 text-red-600" colSpan={5}>{error}</td></tr>
+            )}
+            {!loading && !error && items.map((cust, idx) => (
               <tr
                 key={idx}
                 className="border-b hover:bg-gray-50 transition-colors"
               >
                 <td className="px-6 py-4 flex items-center gap-3">
                   <img
-                    src={cust.avatar || "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80"}
+                    src={"https://i.pravatar.cc/40"}
                     alt={cust.name || "Avatar"}
                     className="w-8 h-8 rounded-full object-cover"
                   />
                   <span>{cust.name || "abc"}</span>
                 </td>
                 <td className="px-6 py-4">{cust.email}</td>
-                <td className="px-6 py-4">{cust.totalOrders}</td>
-                <td className="px-6 py-4">{cust.feedback}</td>
+                <td className="px-6 py-4">{cust.orderCount || 0}</td>
+                <td className="px-6 py-4">{cust.company || "-"}</td>
                 <td className="px-6 py-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${cust.status === "Active"
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${cust.lifecycleStage === "Customer"
                         ? "bg-green-100 text-green-700"
-                        : cust.status === "Pending"
+                        : cust.lifecycleStage === "Lead"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-red-100 text-red-700"
                       }`}
                   >
-                    {cust.status}
+                    {cust.lifecycleStage || "Lead"}
                   </span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <div className="flex items-center justify-between p-4">
+          <div className="text-sm text-gray-600">Total: {total}</div>
+          <div className="space-x-2">
+            <button disabled={page<=1} onClick={() => setPage((p)=>p-1)} className="px-3 py-1 border rounded disabled:opacity-50">Previous</button>
+            <button disabled={(page*limit)>=total} onClick={() => setPage((p)=>p+1)} className="px-3 py-1 border rounded disabled:opacity-50">Next</button>
+          </div>
+        </div>
       </div>
     </div>
   );

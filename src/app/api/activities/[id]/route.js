@@ -1,0 +1,43 @@
+import { connectToDatabase } from "@/lib/mongodb";
+import helperFunction from "@/lib/helperFunction";
+import Activity from "@/models/Activity";
+import { withRole } from "@/middleware/auth";
+
+export async function GET(_req, { params }) {
+  try {
+    await connectToDatabase();
+    const item = await Activity.findById(params.id).lean();
+    if (!item) return helperFunction(404, null, true, "Activity not found");
+    return helperFunction(200, { item }, false, "Activity fetched");
+  } catch (error) {
+    console.error("Activity GET by id error:", error);
+    return helperFunction(500, null, true, "Internal server error");
+  }
+}
+
+export const PUT = withRole(async (req, { params }) => {
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+    const updated = await Activity.findByIdAndUpdate(params.id, body, { new: true });
+    if (!updated) return helperFunction(404, null, true, "Activity not found");
+    return helperFunction(200, { item: updated }, false, "Activity updated");
+  } catch (error) {
+    console.error("Activity PUT error:", error);
+    return helperFunction(500, null, true, "Internal server error");
+  }
+}, ["Admin", "Manager", "Sales Rep"]);
+
+export const DELETE = withRole(async (_req, { params }) => {
+  try {
+    await connectToDatabase();
+    const deleted = await Activity.findByIdAndDelete(params.id);
+    if (!deleted) return helperFunction(404, null, true, "Activity not found");
+    return helperFunction(200, null, false, "Activity deleted");
+  } catch (error) {
+    console.error("Activity DELETE error:", error);
+    return helperFunction(500, null, true, "Internal server error");
+  }
+}, ["Admin", "Manager"]);
+
+

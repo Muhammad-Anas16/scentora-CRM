@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -19,7 +19,32 @@ import {
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 const AnalyticsComp = () => {
-  // --- Sample Data ---
+  const [kpis, setKpis] = useState({ totalOrders: 0, monthlyRevenue: 0, avgOrderValue: 0, newCustomersThisWeek: 0 });
+  const [pipeline, setPipeline] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/dashboard');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || 'Failed to load');
+        if (!ignore) {
+          setKpis(json.data.kpis);
+          setPipeline(json.data.pipeline);
+        }
+      } catch (e) {
+        if (!ignore) setError(e.message);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => { ignore = true; };
+  }, []);
   const salesData = [
     { month: "Jan", revenue: 12000, orders: 80 },
     { month: "Feb", revenue: 15000, orders: 95 },
@@ -73,7 +98,7 @@ const AnalyticsComp = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-xl shadow">
           <h4 className="text-gray-500 text-sm">Total Revenue</h4>
-          <p className="text-2xl font-semibold mt-1">$195,000</p>
+          <p className="text-2xl font-semibold mt-1">${kpis.monthlyRevenue?.toFixed ? kpis.monthlyRevenue.toFixed(2) : kpis.monthlyRevenue}</p>
           <p className="text-green-600 text-sm flex items-center gap-1 mt-1">
             <ArrowUpRight size={14} /> +5.4% from last month
           </p>
@@ -81,7 +106,7 @@ const AnalyticsComp = () => {
 
         <div className="bg-white p-5 rounded-xl shadow">
           <h4 className="text-gray-500 text-sm">Total Orders</h4>
-          <p className="text-2xl font-semibold mt-1">1,230</p>
+          <p className="text-2xl font-semibold mt-1">{kpis.totalOrders}</p>
           <p className="text-green-600 text-sm flex items-center gap-1 mt-1">
             <ArrowUpRight size={14} /> +3.8% from last week
           </p>
@@ -89,7 +114,7 @@ const AnalyticsComp = () => {
 
         <div className="bg-white p-5 rounded-xl shadow">
           <h4 className="text-gray-500 text-sm">Average Order Value</h4>
-          <p className="text-2xl font-semibold mt-1">$63.20</p>
+          <p className="text-2xl font-semibold mt-1">${kpis.avgOrderValue?.toFixed ? kpis.avgOrderValue.toFixed(2) : kpis.avgOrderValue}</p>
           <p className="text-red-600 text-sm flex items-center gap-1 mt-1">
             <ArrowDownRight size={14} /> -1.3% from last month
           </p>
@@ -97,12 +122,15 @@ const AnalyticsComp = () => {
 
         <div className="bg-white p-5 rounded-xl shadow">
           <h4 className="text-gray-500 text-sm">New Customers</h4>
-          <p className="text-2xl font-semibold mt-1">79</p>
+          <p className="text-2xl font-semibold mt-1">{kpis.newCustomersThisWeek}</p>
           <p className="text-green-600 text-sm flex items-center gap-1 mt-1">
             <ArrowUpRight size={14} /> +9.4% growth
           </p>
         </div>
       </div>
+
+      {error && <div className="text-red-600">{error}</div>}
+      {loading && <div className="text-gray-600">Loading...</div>}
 
       {/* Charts Section */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -145,50 +173,37 @@ const AnalyticsComp = () => {
 
       {/* Top Products */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Revenue by Product */}
+        {/* Pipeline by Stage */}
         <div className="bg-white p-6 rounded-xl shadow">
-          <h3 className="font-medium mb-2">Top Products by Revenue</h3>
-          <p className="text-gray-500 text-sm mb-4">
-            Products generating the most income.
-          </p>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={revenueData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="name" type="category" />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Top by Units Sold */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h3 className="font-medium mb-2">Top Products by Units Sold</h3>
-          <p className="text-gray-500 text-sm mb-4">
-            Quantity and revenue of best-selling items.
-          </p>
-
+          <h3 className="font-medium mb-2">Pipeline by Stage</h3>
           <table className="min-w-full text-sm text-left">
             <thead className="border-b text-gray-600 text-xs uppercase">
               <tr>
-                <th className="py-2">Product Name</th>
-                <th className="py-2">Units</th>
-                <th className="py-2">Revenue</th>
-                <th className="py-2">Stock</th>
+                <th className="py-2">Stage</th>
+                <th className="py-2">Deals</th>
+                <th className="py-2">Value</th>
               </tr>
             </thead>
             <tbody>
-              {topProducts.map((p, i) => (
+              {pipeline.map((p, i) => (
                 <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="py-2">{p.name}</td>
-                  <td className="py-2">{p.units}</td>
-                  <td className="py-2">{p.revenue}</td>
-                  <td className="py-2">{p.stock}</td>
+                  <td className="py-2">{p._id}</td>
+                  <td className="py-2">{p.total}</td>
+                  <td className="py-2">${p.value}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Placeholder for additional insights */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="font-medium mb-2">Live Insights</h3>
+          <p className="text-gray-500 text-sm mb-4">Connected to real dashboard KPIs.</p>
+          <ul className="text-sm text-gray-700 space-y-2">
+            <li>Delivered Orders: {kpis.deliveredOrders}</li>
+            <li>Total Customers: {kpis.totalCustomers}</li>
+          </ul>
         </div>
       </div>
 
