@@ -35,12 +35,19 @@ export const POST = withRole(async (req) => {
   try {
     await connectToDatabase();
     const body = await req.json();
+    // Set createdBy to current user if not provided
+    if (!body.createdBy && req.auth?.userId) {
+      body.createdBy = req.auth.userId;
+    }
     const created = await Product.create(body);
     return helperFunction(201, { item: created }, false, "Product created");
   } catch (error) {
     console.error("Product POST error:", error);
+    if (error.name === "ValidationError") {
+      return helperFunction(400, null, true, error.message);
+    }
     return helperFunction(500, null, true, "Internal server error");
   }
-}, ["Admin", "Manager"]);
+}, ["Admin", "Manager", "Sales Rep"]);
 
 

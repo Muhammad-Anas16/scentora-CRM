@@ -26,10 +26,6 @@ export async function POST(req) {
             return helperFunction(400, null, true, "Invalid email format");
         }
 
-        if (!process.env.SALT) {
-            return helperFunction(500, null, true, "Server configuration error");
-        }
-
         await connectToDatabase();
         const normalizedEmail = email.trim().toLowerCase();
         const existingUser = await User.findOne({ email: normalizedEmail });
@@ -37,7 +33,8 @@ export async function POST(req) {
             return helperFunction(400, null, true, "User already exists");
         }
 
-        const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT));
+        // Use bcrypt default rounds (10) - secure and standard
+        const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await User.create({
             username: username.trim(),
             email: normalizedEmail,

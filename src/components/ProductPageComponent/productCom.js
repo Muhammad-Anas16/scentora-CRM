@@ -30,16 +30,24 @@ const ProductComp = () => {
 
         <div className="flex items-center gap-3">
           <Sheet>
-            <SheetTrigger className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800">
+            <SheetTrigger className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">
               <Plus size={16} />
               <span className="text-sm">Add New Product</span>
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetContent side="right" className="w-full sm:max-w-md">
               <SheetHeader>
-                <SheetTitle>Add Product</SheetTitle>
+                <SheetTitle>Add New Product</SheetTitle>
               </SheetHeader>
-              <div className="p-4">
-                <ProductForm onSuccess={() => dispatch(fetchProducts({ page, limit, q: query }))} />
+              <div className="mt-6">
+                <ProductForm 
+                  onSuccess={() => {
+                    dispatch(fetchProducts({ page, limit, q: query }));
+                  }}
+                  onClose={() => {
+                    const closeBtn = document.querySelector('[data-slot="sheet-close"]');
+                    if (closeBtn) closeBtn.click();
+                  }}
+                />
               </div>
             </SheetContent>
           </Sheet>
@@ -69,25 +77,41 @@ const ProductComp = () => {
           </thead>
           <tbody>
             {loading && (
-              <tr><td className="px-6 py-4" colSpan={6}>Loading...</td></tr>
+              <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={6}>Loading products...</td></tr>
             )}
             {error && !loading && (
-              <tr><td className="px-6 py-4 text-red-600" colSpan={6}>{error}</td></tr>
+              <tr><td className="px-6 py-8 text-center text-red-600" colSpan={6}>Error: {error}</td></tr>
+            )}
+            {!loading && !error && products.length === 0 && (
+              <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={6}>No products found. Create your first product!</td></tr>
             )}
             {!loading && !error && products.map((item) => (
               <tr key={item._id} className="border-b hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 font-medium">{item._id}</td>
+                <td className="px-6 py-4 font-medium text-xs">{item._id?.slice(-8) || "N/A"}</td>
                 <td className="px-6 py-4">
-                  <img
-                    src={item.thumbnail || ""}
-                    alt={item.title || "Product"}
-                    className="w-10 h-10 rounded-md object-cover"
-                  />
+                  {item.thumbnail ? (
+                    <img
+                      src={item.thumbnail}
+                      alt={item.title || "Product"}
+                      className="w-10 h-10 rounded-md object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                  ) : null}
+                  <div className="w-10 h-10 rounded-md bg-gray-200 flex items-center justify-center text-xs text-gray-500" style={{ display: item.thumbnail ? 'none' : 'flex' }}>
+                    No Image
+                  </div>
                 </td>
-                <td className="px-6 py-4">{item.title}</td>
-                <td className="px-6 py-4">{item.category}</td>
-                <td className="px-6 py-4">${item.price?.toFixed ? item.price.toFixed(2) : item.price}</td>
-                <td className="px-6 py-4">{item.stock}</td>
+                <td className="px-6 py-4 font-medium">{item.title}</td>
+                <td className="px-6 py-4 text-gray-600">{item.category || "Uncategorized"}</td>
+                <td className="px-6 py-4 font-semibold">${item.price?.toFixed ? item.price.toFixed(2) : item.price || "0.00"}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 rounded text-xs ${item.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {item.stock || 0}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>

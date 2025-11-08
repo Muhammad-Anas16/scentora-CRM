@@ -10,17 +10,31 @@ import User from "@/models/User";
  */
 export async function authenticate(req) {
   try {
-    // Get token from Authorization header or cookie
+    // Get token from Authorization header first (most reliable)
     let token = req.headers.get("authorization");
     
     if (token) {
-      token = token.replace("Bearer ", "");
-    } else {
-      // Try to get from cookies
+      token = token.replace("Bearer ", "").trim();
+    }
+    
+    // If no token in header, try to get from cookies
+    if (!token) {
       const cookies = req.headers.get("cookie");
       if (cookies) {
-        const tokenMatch = cookies.match(/token=([^;]+)/);
-        token = tokenMatch ? tokenMatch[1] : null;
+        // Try multiple patterns to match cookie - handle URL encoding
+        const patterns = [
+          /token=([^;,\s]+)/,
+          /token="([^"]+)"/,
+          /token=([^;]+)/,
+        ];
+        
+        for (const pattern of patterns) {
+          const tokenMatch = cookies.match(pattern);
+          if (tokenMatch && tokenMatch[1]) {
+            token = decodeURIComponent(tokenMatch[1].trim());
+            break;
+          }
+        }
       }
     }
 

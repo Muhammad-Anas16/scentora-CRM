@@ -62,6 +62,7 @@ export const POST = withRole(async (req) => {
             orderDate: orderDate ? new Date(orderDate) : undefined,
             deliveryDate: deliveryDate ? new Date(deliveryDate) : undefined,
             opportunity: opportunity || undefined,
+            createdBy: req.auth?.userId || undefined,
         });
 
         // Update customer analytics

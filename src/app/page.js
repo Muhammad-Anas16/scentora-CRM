@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Users, ShoppingBag, DollarSign, MessageSquare } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Users, ShoppingBag, DollarSign, TrendingUp } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -10,36 +10,90 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  CartesianGrid,
 } from "recharts";
 
-const salesData = [
-  { month: "Jan", revenue: 2500, orders: 400 },
-  { month: "Feb", revenue: 2800, orders: 450 },
-  { month: "Mar", revenue: 3100, orders: 480 },
-  { month: "Apr", revenue: 3500, orders: 500 },
-  { month: "May", revenue: 3700, orders: 520 },
-  { month: "Jun", revenue: 4100, orders: 600 },
-  { month: "Jul", revenue: 4300, orders: 630 },
-  { month: "Aug", revenue: 4700, orders: 700 },
-  { month: "Sep", revenue: 4900, orders: 750 },
-  { month: "Oct", revenue: 5200, orders: 820 },
-  { month: "Nov", revenue: 5600, orders: 900 },
-  { month: "Dec", revenue: 5900, orders: 950 },
-];
-
-const recentOrders = [
-  { id: "#1001", customer: "Ahmed Khan", date: "2024-07-26", total: "PKR 5,200" },
-  { id: "#1002", customer: "Fatima Ali", date: "2024-07-26", total: "PKR 3,850" },
-  { id: "#1003", customer: "Usman Raza", date: "2024-07-25", total: "PKR 7,100" },
-  { id: "#1004", customer: "Sana Malik", date: "2024-07-25", total: "PKR 2,999" },
-  { id: "#1005", customer: "Imran Hussain", date: "2024-07-24", total: "PKR 4,500" },
-  { id: "#1006", customer: "Aisha Javed", date: "2024-07-24", total: "PKR 6,300" },
-];
-
 export default function Home() {
+  const [kpis, setKpis] = useState({
+    totalOrders: 0,
+    deliveredOrders: 0,
+    monthlyRevenue: 0,
+    avgOrderValue: 0,
+    totalCustomers: 0,
+    newCustomersThisWeek: 0,
+  });
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError("");
+        
+        const [dashboardRes, ordersRes] = await Promise.all([
+          fetch("/api/dashboard"),
+          fetch("/api/orders?limit=6&page=1"),
+        ]);
+
+        const dashboardJson = await dashboardRes.json();
+        const ordersJson = await ordersRes.json();
+
+        if (dashboardJson.success) {
+          setKpis(dashboardJson.data.kpis);
+        }
+
+        if (ordersJson.success) {
+          setRecentOrders(ordersJson.data.items || []);
+        }
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboard();
+  }, []);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-PK", {
+      style: "currency",
+      currency: "PKR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-10">
+        <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="p-5 bg-white rounded-xl shadow animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-32"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-10">
+        <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+          Error loading dashboard: {error}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
-      {/* Title */}
       <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
 
       {/* KPI Cards */}
@@ -47,8 +101,10 @@ export default function Home() {
         <div className="p-5 bg-white rounded-xl shadow flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-500">Total Customers</p>
-            <h2 className="text-3xl font-bold mt-1">2,450</h2>
-            <p className="text-xs text-gray-400 mt-1">+12% from last month</p>
+            <h2 className="text-3xl font-bold mt-1">{kpis.totalCustomers.toLocaleString()}</h2>
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <TrendingUp size={12} /> +{kpis.newCustomersThisWeek} this week
+            </p>
           </div>
           <div className="bg-amber-100 p-3 rounded-xl">
             <Users className="text-amber-700 w-6 h-6" />
@@ -58,8 +114,10 @@ export default function Home() {
         <div className="p-5 bg-white rounded-xl shadow flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-500">Total Orders</p>
-            <h2 className="text-3xl font-bold mt-1">1,832</h2>
-            <p className="text-xs text-gray-400 mt-1">+8% from last month</p>
+            <h2 className="text-3xl font-bold mt-1">{kpis.totalOrders.toLocaleString()}</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              {kpis.deliveredOrders} delivered
+            </p>
           </div>
           <div className="bg-gray-100 p-3 rounded-xl">
             <ShoppingBag className="text-gray-700 w-6 h-6" />
@@ -68,8 +126,8 @@ export default function Home() {
 
         <div className="p-5 bg-amber-50 rounded-xl shadow flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Total Revenue</p>
-            <h2 className="text-3xl font-bold mt-1">PKR 89,300</h2>
+            <p className="text-sm text-gray-500">Monthly Revenue</p>
+            <h2 className="text-3xl font-bold mt-1">{formatCurrency(kpis.monthlyRevenue)}</h2>
           </div>
           <div className="bg-amber-200 p-3 rounded-xl">
             <DollarSign className="text-amber-700 w-6 h-6" />
@@ -78,72 +136,58 @@ export default function Home() {
 
         <div className="p-5 bg-white rounded-xl shadow flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">New Chats</p>
-            <h2 className="text-3xl font-bold mt-1">67</h2>
-            <p className="text-xs text-gray-400 mt-1">-20% from yesterday</p>
+            <p className="text-sm text-gray-500">Avg Order Value</p>
+            <h2 className="text-3xl font-bold mt-1">{formatCurrency(kpis.avgOrderValue)}</h2>
+            <p className="text-xs text-gray-400 mt-1">Per order</p>
           </div>
           <div className="bg-gray-100 p-3 rounded-xl">
-            <MessageSquare className="text-gray-700 w-6 h-6" />
+            <TrendingUp className="text-gray-700 w-6 h-6" />
           </div>
-        </div>
-      </div>
-
-      {/* Sales Trend */}
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-lg font-semibold mb-1">Sales Trend</h2>
-        <p className="text-sm text-gray-500 mb-4">Monthly Revenue and Order Count</p>
-
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={salesData}>
-              <XAxis dataKey="month" stroke="#ccc" />
-              <YAxis yAxisId="left" stroke="#ccc" />
-              <YAxis yAxisId="right" orientation="right" stroke="#ccc" />
-              <Tooltip />
-              <Legend />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="revenue"
-                stroke="#C89B3C"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="orders"
-                stroke="#000"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
         </div>
       </div>
 
       {/* Recent Orders */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Recent Orders</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {recentOrders.map((order) => (
-            <div
-              key={order.id}
-              className="p-5 bg-white rounded-xl shadow border border-gray-100"
-            >
-              <h3 className="font-semibold mb-1">Order {order.id}</h3>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Customer:</span> {order.customer}
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Date:</span> {order.date}
-              </p>
-              <p className="text-sm text-gray-900 mt-2">
-                <span className="font-medium">Total:</span> {order.total}
-              </p>
-            </div>
-          ))}
-        </div>
+        {recentOrders.length === 0 ? (
+          <div className="p-8 bg-white rounded-xl shadow text-center text-gray-500">
+            No orders yet. Create your first order to get started!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {recentOrders.map((order) => (
+              <div
+                key={order._id}
+                className="p-5 bg-white rounded-xl shadow border border-gray-100"
+              >
+                <h3 className="font-semibold mb-1">Order #{order._id.slice(-6)}</h3>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Customer:</span> {order.customer?.name || "N/A"}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Date:</span>{" "}
+                  {new Date(order.orderDate || order.createdAt).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-900 mt-2">
+                  <span className="font-medium">Total:</span> {formatCurrency(order.amount)}
+                </p>
+                <span
+                  className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
+                    order.status === "Delivered"
+                      ? "bg-green-100 text-green-700"
+                      : order.status === "Processing"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : order.status === "Cancelled"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {order.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

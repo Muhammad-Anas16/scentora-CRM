@@ -36,7 +36,12 @@ const LoginForm = () => {
 
       if (!response.data.error) {
         toast.success(response.data.message);
-        Cookies.set("token", response.data.data.token);
+        // Set cookie with proper options for cross-origin requests
+        Cookies.set("token", response.data.data.token, {
+          expires: 7, // 7 days
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
         setSubmitValue("Logged in!");
         setTimeout(() => {
           router.push("/");

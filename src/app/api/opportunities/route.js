@@ -38,10 +38,17 @@ export const POST = withRole(async (req) => {
   try {
     await connectToDatabase();
     const body = await req.json();
+    // Set owner to current user if not provided
+    if (!body.owner && req.auth?.userId) {
+      body.owner = req.auth.userId;
+    }
     const created = await Opportunity.create(body);
     return helperFunction(201, { item: created }, false, "Opportunity created");
   } catch (error) {
     console.error("Opportunity POST error:", error);
+    if (error.name === "ValidationError") {
+      return helperFunction(400, null, true, error.message);
+    }
     return helperFunction(500, null, true, "Internal server error");
   }
 }, ["Admin", "Manager", "Sales Rep"]);

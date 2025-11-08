@@ -1,21 +1,30 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import ActivityForm from "@/components/Forms/ActivityForm";
 
 export default function ActivitiesPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
 
   useEffect(() => {
     let ignore = false;
     async function load() {
       try {
         setLoading(true);
-        const res = await fetch('/api/activities');
+        const res = await fetch(`/api/activities?page=${page}&limit=${limit}`);
         const json = await res.json();
         if (!json.success) throw new Error(json.message || 'Failed');
-        if (!ignore) setItems(json.data.items);
+        if (!ignore) {
+          setItems(json.data.items);
+          setTotal(json.data.total);
+        }
       } catch (e) {
         if (!ignore) setError(e.message);
       } finally {
@@ -24,36 +33,110 @@ export default function ActivitiesPage() {
     }
     load();
     return () => { ignore = true; };
-  }, []);
+  }, [page, limit]);
+
+  const getTypeColor = (type) => {
+    const colors = {
+      "Call": "bg-blue-100 text-blue-700",
+      "Email": "bg-green-100 text-green-700",
+      "Meeting": "bg-purple-100 text-purple-700",
+      "Note": "bg-gray-100 text-gray-700",
+      "Task": "bg-orange-100 text-orange-700",
+    };
+    return colors[type] || "bg-gray-100 text-gray-700";
+  };
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-semibold mb-6">Activities</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Activities</h1>
+        <Sheet>
+          <SheetTrigger className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">
+            <Plus size={16} />
+            <span>Add Activity</span>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Add New Activity</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <ActivityForm 
+                onSuccess={() => {
+                  setPage(1);
+                  fetch(`/api/activities?page=1&limit=${limit}`)
+                    .then(r => r.json())
+                    .then(json => {
+                      if (json.success) {
+                        setItems(json.data.items);
+                        setTotal(json.data.total);
+                      }
+                    });
+                }}
+                onClose={() => {
+                  const closeBtn = document.querySelector('[data-slot="sheet-close"]');
+                  if (closeBtn) closeBtn.click();
+                }}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         <table className="min-w-full text-sm text-left">
           <thead className="border-b bg-gray-100 text-gray-600 uppercase text-xs">
             <tr>
               <th className="px-6 py-3">Type</th>
               <th className="px-6 py-3">Subject</th>
-              <th className="px-6 py-3">Related</th>
-              <th className="px-6 py-3">Due</th>
+              <th className="px-6 py-3">Related To</th>
+              <th className="px-6 py-3">Due Date</th>
               <th className="px-6 py-3">Completed</th>
             </tr>
           </thead>
           <tbody>
-            {loading && (<tr><td className="px-6 py-4" colSpan={5}>Loading...</td></tr>)}
-            {error && !loading && (<tr><td className="px-6 py-4 text-red-600" colSpan={5}>{error}</td></tr>)}
+            {loading && (<tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>Loading activities...</td></tr>)}
+            {error && !loading && (<tr><td className="px-6 py-8 text-center text-red-600" colSpan={5}>Error: {error}</td></tr>)}
+            {!loading && !error && items.length === 0 && (<tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>No activities found. Create your first activity!</td></tr>)}
             {!loading && !error && items.map((a) => (
-              <tr key={a._id} className="border-b hover:bg-gray-50">
-                <td className="px-6 py-4">{a.type}</td>
-                <td className="px-6 py-4">{a.subject}</td>
-                <td className="px-6 py-4">{a.relatedTo?.entityType}</td>
+              <tr key={a._id} className="border-b hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 rounded text-xs ${getTypeColor(a.type)}`}>
+                    {a.type}
+                  </span>
+                </td>
+                <td className="px-6 py-4 font-medium">{a.subject}</td>
+                <td className="px-6 py-4 text-gray-600">{a.relatedTo?.entityType || "N/A"}</td>
                 <td className="px-6 py-4">{a.dueDate ? new Date(a.dueDate).toLocaleDateString() : '-'}</td>
-                <td className="px-6 py-4">{a.completed ? 'Yes' : 'No'}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 rounded text-xs ${a.completed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                    {a.completed ? 'Yes' : 'No'}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {total > limit && (
+          <div className="flex items-center justify-between p-4 border-t">
+            <div className="text-sm text-gray-600">Total: {total}</div>
+            <div className="space-x-2">
+              <button
+                className="px-3 py-1 border rounded disabled:opacity-50"
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                Previous
+              </button>
+              <span className="text-sm font-medium">{page}</span>
+              <button
+                className="px-3 py-1 border rounded disabled:opacity-50"
+                disabled={(page * limit) >= total}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

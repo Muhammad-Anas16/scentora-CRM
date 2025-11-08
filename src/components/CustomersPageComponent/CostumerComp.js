@@ -39,13 +39,33 @@ const CustomerOverview = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Customers Overview</h1>
         <Sheet>
-          <SheetTrigger className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800">Add Customer</SheetTrigger>
-          <SheetContent side="right">
+          <SheetTrigger className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">
+            <Plus size={16} />
+            <span>Add Customer</span>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-md">
             <SheetHeader>
-              <SheetTitle>Add Customer</SheetTitle>
+              <SheetTitle>Add New Customer</SheetTitle>
             </SheetHeader>
-            <div className="p-4">
-              <CustomerForm onSuccess={() => setPage(1)} />
+            <div className="mt-6">
+              <CustomerForm 
+                onSuccess={() => {
+                  setPage(1);
+                  // Refresh customer list
+                  fetch(`/api/customers?page=1&limit=${limit}&q=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(json => {
+                      if (json.success) {
+                        setItems(json.data.items);
+                        setTotal(json.data.total);
+                      }
+                    });
+                }}
+                onClose={() => {
+                  const closeBtn = document.querySelector('[data-slot="sheet-close"]');
+                  if (closeBtn) closeBtn.click();
+                }}
+              />
             </div>
           </SheetContent>
         </Sheet>
@@ -71,10 +91,13 @@ const CustomerOverview = () => {
           </thead>
           <tbody>
             {loading && (
-              <tr><td className="px-6 py-4" colSpan={5}>Loading...</td></tr>
+              <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>Loading customers...</td></tr>
             )}
             {error && !loading && (
-              <tr><td className="px-6 py-4 text-red-600" colSpan={5}>{error}</td></tr>
+              <tr><td className="px-6 py-8 text-center text-red-600" colSpan={5}>Error: {error}</td></tr>
+            )}
+            {!loading && !error && items.length === 0 && (
+              <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>No customers found. Create your first customer!</td></tr>
             )}
             {!loading && !error && items.map((cust, idx) => (
               <tr

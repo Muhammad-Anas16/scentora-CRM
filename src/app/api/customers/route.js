@@ -40,10 +40,20 @@ export const POST = withRole(async (req) => {
   try {
     await connectToDatabase();
     const body = await req.json();
+    // Set assignedTo to current user if not provided
+    if (!body.assignedTo && req.auth?.userId) {
+      body.assignedTo = req.auth.userId;
+    }
     const created = await Customer.create(body);
     return helperFunction(201, { item: created }, false, "Customer created");
   } catch (error) {
     console.error("Customer POST error:", error);
+    if (error.name === "ValidationError") {
+      return helperFunction(400, null, true, error.message);
+    }
+    if (error.code === 11000) {
+      return helperFunction(400, null, true, "Email already exists");
+    }
     return helperFunction(500, null, true, "Internal server error");
   }
 }, ["Admin", "Manager", "Sales Rep"]);
