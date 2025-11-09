@@ -6,8 +6,7 @@ const orderSchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      required: true,
-      index: true
+      required: true
     },
     
     product: { type: String, required: true, trim: true },
@@ -15,8 +14,7 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
-      default: "Pending",
-      index: true
+      default: "Pending"
     },
     
     // Additional fields
@@ -32,8 +30,7 @@ const orderSchema = new mongoose.Schema(
     // Created by user
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      index: true
+      ref: "User"
     }
   },
   { timestamps: true }

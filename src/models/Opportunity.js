@@ -9,16 +9,14 @@ const opportunitySchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      required: true,
-      index: true
+      required: true
     },
     
     // Pipeline Stage
     stage: {
       type: String,
       enum: ["Lead", "Qualification", "Proposal", "Negotiation", "Closed Won", "Closed Lost"],
-      default: "Lead",
-      index: true
+      default: "Lead"
     },
     
     // Value & Probability
@@ -27,15 +25,14 @@ const opportunitySchema = new mongoose.Schema(
     expectedValue: { type: Number }, // Calculated: value * (probability / 100)
     
     // Dates
-    expectedCloseDate: { type: Date, index: true },
+    expectedCloseDate: { type: Date },
     actualCloseDate: Date,
     
     // Assignment
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
-      index: true
+      required: true
     },
     
     // Products

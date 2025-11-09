@@ -28,12 +28,11 @@ const activitySchema = new mongoose.Schema(
     // Assignment
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      index: true
+      ref: "User"
     },
     
     // Scheduling
-    dueDate: { type: Date, index: true },
+    dueDate: { type: Date },
     completed: { type: Boolean, default: false },
     completedAt: Date,
     
