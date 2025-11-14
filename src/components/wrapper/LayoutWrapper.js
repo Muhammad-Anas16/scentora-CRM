@@ -22,8 +22,8 @@ export default function LayoutWrapper({ children }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex flex-col flex-1 min-h-screen p-4 transition-all">
-        <div className="flex items-center justify-between mb-4">
+      <main className="flex flex-col flex-1 min-h-screen p-4 transition-all md:p-6 lg:p-8">
+        <div className="mb-4 flex items-center justify-between lg:mb-6">
           <SidebarTrigger className="md:hidden" />
           {/* <Topbar /> */}
         </div>

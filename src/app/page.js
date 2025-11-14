@@ -12,17 +12,11 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
+import { demoAnalytics, demoOrders } from "@/data/demoData";
 
 export default function Home() {
-  const [kpis, setKpis] = useState({
-    totalOrders: 0,
-    deliveredOrders: 0,
-    monthlyRevenue: 0,
-    avgOrderValue: 0,
-    totalCustomers: 0,
-    newCustomersThisWeek: 0,
-  });
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [kpis, setKpis] = useState(demoAnalytics.kpis);
+  const [recentOrders, setRecentOrders] = useState(demoOrders.slice(0, 6));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -31,7 +25,7 @@ export default function Home() {
       try {
         setLoading(true);
         setError("");
-        
+
         const [dashboardRes, ordersRes] = await Promise.all([
           fetch("/api/dashboard"),
           fetch("/api/orders?limit=6&page=1"),
@@ -40,15 +34,27 @@ export default function Home() {
         const dashboardJson = await dashboardRes.json();
         const ordersJson = await ordersRes.json();
 
-        if (dashboardJson.success) {
+        let usedDemo = false;
+
+        if (dashboardJson.success && dashboardJson.data?.kpis) {
           setKpis(dashboardJson.data.kpis);
+        } else {
+          usedDemo = true;
+          setKpis(demoAnalytics.kpis);
         }
 
-        if (ordersJson.success) {
+        if (ordersJson.success && ordersJson.data?.items?.length) {
           setRecentOrders(ordersJson.data.items || []);
+        } else {
+          usedDemo = true;
+          setRecentOrders(demoOrders.slice(0, 6));
         }
+
+        setError(usedDemo ? "Showing demo data" : "");
       } catch (e) {
-        setError(e.message);
+        setKpis(demoAnalytics.kpis);
+        setRecentOrders(demoOrders.slice(0, 6));
+        setError("Showing demo data");
       } finally {
         setLoading(false);
       }
@@ -81,20 +87,14 @@ export default function Home() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-10">
-        <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-          Error loading dashboard: {error}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-10">
       <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
+      {error && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+          {error}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

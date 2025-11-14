@@ -49,9 +49,9 @@ const RegisterForm = () => {
   };
 
   return (
-    <div>
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-sm z-0"></div>
-      <div className="relative z-10 bg-white/90 rounded-xl shadow-xl w-full max-w-md p-8 text-center">
+    <div className="relative w-full max-w-md">
+      <div aria-hidden className="absolute inset-0 -z-10 rounded-2xl bg-white/60 backdrop-blur-sm"></div>
+      <div className="relative rounded-2xl bg-white/90 p-8 text-center shadow-xl">
         <h2 className="text-2xl font-serif text-gray-800 mb-2">Create Account</h2>
         <p className="text-gray-500 text-sm mb-6">
           Please fill the form to register.
@@ -59,8 +59,11 @@ const RegisterForm = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
           <div>
-            <label className="text-sm font-medium text-gray-700">Username</label>
+            <label htmlFor="username" className="text-sm font-medium text-gray-700">
+              Username
+            </label>
             <input
+              id="username"
               type="text"
               placeholder="Enter your username"
               {...register("username")}
@@ -76,8 +79,11 @@ const RegisterForm = () => {
             )}
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
+            <label htmlFor="register-email" className="text-sm font-medium text-gray-700">
+              Email
+            </label>
             <input
+              id="register-email"
               type="email"
               placeholder="your@example.com"
               {...register("email")}
@@ -93,8 +99,11 @@ const RegisterForm = () => {
             )}
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Password</label>
+            <label htmlFor="register-password" className="text-sm font-medium text-gray-700">
+              Password
+            </label>
             <input
+              id="register-password"
               type="password"
               placeholder="••••••••"
               {...register("password")}
@@ -116,7 +125,7 @@ const RegisterForm = () => {
             {submitValue}
           </button>
         </form>
-        <p className="text-sm text-gray-600 mt-6">
+        <p className="mt-6 text-sm text-gray-600">
           Already have an account?{" "}
           <span
             onClick={handleClick}
@@ -127,8 +136,8 @@ const RegisterForm = () => {
         </p>
       </div>
 
-      <div className="absolute bottom-4 left-4 text-xs text-gray-500 flex items-center space-x-1 z-10">
-        <span>Made with</span>
+      <div className="mt-6 flex items-center justify-center text-xs text-gray-500">
+        <span className="mr-1">Made with</span>
         <span className="text-purple-600 font-bold">❤</span>
       </div>
     </div>

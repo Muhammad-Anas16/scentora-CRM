@@ -4,17 +4,31 @@ import React, { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CustomerForm from "@/components/Forms/CustomerForm";
+import { demoCustomers } from "@/data/demoData";
 
 const CustomerOverview = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isDemo, setIsDemo] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(10);
   const [q, setQ] = useState("");
 
   useEffect(() => {
+    if (isDemo) {
+      const filteredDemo = demoCustomers.filter((customer) => {
+        if (!q) return true;
+        const searchable = `${customer.name} ${customer.email} ${customer.company}`.toLowerCase();
+        return searchable.includes(q.toLowerCase());
+      });
+      const start = (page - 1) * limit;
+      setItems(filteredDemo.slice(start, start + limit));
+      setTotal(filteredDemo.length);
+      return;
+    }
+
     const controller = new AbortController();
     async function load() {
       try {
@@ -22,11 +36,40 @@ const CustomerOverview = () => {
         setError("");
         const res = await fetch(`/api/customers?page=${page}&limit=${limit}&q=${encodeURIComponent(q)}`, { signal: controller.signal });
         const json = await res.json();
-        if (!json.success) throw new Error(json.message || "Failed to fetch");
-        setItems(json.data.items);
-        setTotal(json.data.total);
+        if (!json.success) {
+          throw new Error(json.message || "Failed to fetch");
+        }
+        const fetchedItems = json.data.items || [];
+        if (!json.data.total || (fetchedItems.length === 0 && !q)) {
+          setIsDemo(true);
+          setError("Showing demo customers");
+          const filteredDemo = demoCustomers.filter((customer) => {
+            if (!q) return true;
+            const searchable = `${customer.name} ${customer.email} ${customer.company}`.toLowerCase();
+            return searchable.includes(q.toLowerCase());
+          });
+          const start = (page - 1) * limit;
+          setItems(filteredDemo.slice(start, start + limit));
+          setTotal(filteredDemo.length);
+        } else {
+          setIsDemo(false);
+          setError("");
+          setItems(fetchedItems);
+          setTotal(json.data.total);
+        }
       } catch (e) {
-        if (e.name !== "AbortError") setError(e.message);
+        if (e.name !== "AbortError") {
+          setIsDemo(true);
+          setError("Showing demo customers");
+          const filteredDemo = demoCustomers.filter((customer) => {
+            if (!q) return true;
+            const searchable = `${customer.name} ${customer.email} ${customer.company}`.toLowerCase();
+            return searchable.includes(q.toLowerCase());
+          });
+          const start = (page - 1) * limit;
+          setItems(filteredDemo.slice(start, start + limit));
+          setTotal(filteredDemo.length);
+        }
       } finally {
         setLoading(false);
       }
@@ -36,8 +79,8 @@ const CustomerOverview = () => {
   }, [page, limit, q]);
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-semibold">Customers Overview</h1>
         <Sheet>
           <SheetTrigger className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">
@@ -71,67 +114,71 @@ const CustomerOverview = () => {
           </SheetContent>
         </Sheet>
       </div>
-      <div className="bg-white rounded-xl shadow overflow-x-auto">
+      {error && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          {error}
+        </div>
+      )}
+      <div className="bg-white rounded-xl shadow">
         <div className="p-4">
           <input
             value={q}
             onChange={(e) => { setPage(1); setQ(e.target.value); }}
             placeholder="Search by name, email, company"
-            className="border rounded-md w-full md:w-1/3 p-2 focus:ring-2 focus:ring-amber-400 outline-none"
+            className="w-full rounded-md border p-2 outline-none focus:ring-2 focus:ring-amber-400 md:w-72"
           />
         </div>
-        <table className="min-w-full text-sm text-left">
-          <thead className="border-b bg-gray-100 text-gray-600 uppercase text-xs">
-            <tr>
-              <th className="px-6 py-3">Customer</th>
-              <th className="px-6 py-3">Email</th>
-              <th className="px-6 py-3">Total Orders</th>
-              <th className="px-6 py-3">Last Feedback</th>
-              <th className="px-6 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>Loading customers...</td></tr>
-            )}
-            {error && !loading && (
-              <tr><td className="px-6 py-8 text-center text-red-600" colSpan={5}>Error: {error}</td></tr>
-            )}
-            {!loading && !error && items.length === 0 && (
-              <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>No customers found. Create your first customer!</td></tr>
-            )}
-            {!loading && !error && items.map((cust, idx) => (
-              <tr
-                key={idx}
-                className="border-b hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-6 py-4 flex items-center gap-3">
-                  <img
-                    src={"https://i.pravatar.cc/40"}
-                    alt={cust.name || "Avatar"}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <span>{cust.name || "abc"}</span>
-                </td>
-                <td className="px-6 py-4">{cust.email}</td>
-                <td className="px-6 py-4">{cust.orderCount || 0}</td>
-                <td className="px-6 py-4">{cust.company || "-"}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${cust.lifecycleStage === "Customer"
-                        ? "bg-green-100 text-green-700"
-                        : cust.lifecycleStage === "Lead"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                  >
-                    {cust.lifecycleStage || "Lead"}
-                  </span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left">
+            <thead className="border-b bg-gray-100 text-gray-600 uppercase text-xs">
+              <tr>
+                <th className="px-6 py-3">Customer</th>
+                <th className="px-6 py-3">Email</th>
+                <th className="px-6 py-3">Total Orders</th>
+                <th className="px-6 py-3">Last Feedback</th>
+                <th className="px-6 py-3">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>Loading customers...</td></tr>
+              )}
+            {!loading && items.length === 0 && (
+                <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={5}>No customers found. Create your first customer!</td></tr>
+              )}
+            {!loading && items.map((cust, idx) => (
+                <tr
+                  key={idx}
+                  className="border-t hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-6 py-4 flex items-center gap-3">
+                    <img
+                      src={"https://i.pravatar.cc/40"}
+                      alt={cust.name || "Avatar"}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <span>{cust.name || "abc"}</span>
+                  </td>
+                  <td className="px-6 py-4">{cust.email}</td>
+                  <td className="px-6 py-4">{cust.orderCount || 0}</td>
+                  <td className="px-6 py-4">{cust.company || "-"}</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${cust.lifecycleStage === "Customer"
+                          ? "bg-green-100 text-green-700"
+                          : cust.lifecycleStage === "Lead"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                    >
+                      {cust.lifecycleStage || "Lead"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <div className="flex items-center justify-between p-4">
           <div className="text-sm text-gray-600">Total: {total}</div>
           <div className="space-x-2">

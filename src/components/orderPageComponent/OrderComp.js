@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { demoOrders } from "@/data/demoData";
 
 const OrderFormButton = ({ onSuccess }) => (
   <Sheet>
@@ -40,7 +41,14 @@ const OrderFormButton = ({ onSuccess }) => (
   </Sheet>
 );
 
-const currency = (n) => (typeof n === "number" ? `Rs. ${n.toFixed(2)}` : n);
+const currency = (n) =>
+  typeof n === "number"
+    ? new Intl.NumberFormat("en-PK", {
+        style: "currency",
+        currency: "PKR",
+        minimumFractionDigits: 0,
+      }).format(n)
+    : n;
 
 const OrderStats = ({ items, loading, totalOrders, totalPending, totalDelivered, totalRevenue }) => {
   if (loading) {
@@ -103,15 +111,27 @@ const getStatusColor = (status) => {
   }
 };
 
+const sliceDemoOrders = (page, limit) => {
+  const start = (page - 1) * limit;
+  return demoOrders.slice(start, start + limit);
+};
+
 const OrdersPageComponent = () => {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [total, setTotal] = useState(0);
+  const [total, setTotal] = useState(demoOrders.length);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
+    if (isDemo) {
+      setItems(sliceDemoOrders(page, limit));
+      setTotal(demoOrders.length);
+      return;
+    }
+
     const controller = new AbortController();
     async function load() {
       try {
@@ -119,93 +139,166 @@ const OrdersPageComponent = () => {
         setError("");
         const res = await fetch(`/api/orders?page=${page}&limit=${limit}`, { signal: controller.signal });
         const json = await res.json();
-        if (!json.success) throw new Error(json.message || "Failed to fetch");
-        setItems(json.data.items);
-        setTotal(json.data.total);
+        if (!json.success) {
+          throw new Error(json.message || "Failed to fetch");
+        }
+        const fetchedItems = json.data.items || [];
+        if (!json.data.total || fetchedItems.length === 0) {
+          setIsDemo(true);
+          setError("Showing demo orders");
+          setItems(sliceDemoOrders(page, limit));
+          setTotal(demoOrders.length);
+        } else {
+          setIsDemo(false);
+          setError("");
+          setItems(fetchedItems);
+          setTotal(json.data.total);
+        }
       } catch (e) {
-        if (e.name !== "AbortError") setError(e.message);
+        if (e.name !== "AbortError") {
+          setIsDemo(true);
+          setError("Showing demo orders");
+          setItems(sliceDemoOrders(page, limit));
+          setTotal(demoOrders.length);
+        }
       } finally {
         setLoading(false);
       }
     }
     load();
     return () => controller.abort();
-  }, [page, limit]);
+  }, [page, limit, isDemo]);
+
+  const demoStats = {
+    totalOrders: demoOrders.length,
+    totalPending: demoOrders.filter((order) => order.status === "Pending").length,
+    totalDelivered: demoOrders.filter((order) => order.status === "Delivered").length,
+    totalRevenue: demoOrders.reduce((sum, order) => sum + (order.amount || 0), 0),
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Order Management</h1>
+      {error && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          {error}
+        </div>
+      )}
 
       {/* Stats Cards */}
-      <OrderStats items={items} loading={loading} />
+      <OrderStats
+        items={items}
+        loading={loading && !isDemo}
+        {...(isDemo
+          ? {
+              totalOrders: demoStats.totalOrders,
+              totalPending: demoStats.totalPending,
+              totalDelivered: demoStats.totalDelivered,
+              totalRevenue: demoStats.totalRevenue,
+            }
+          : {})}
+      />
 
       {/* Recent Orders Section */}
-      <div className="bg-white rounded-xl shadow p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="rounded-xl bg-white p-6 shadow">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Recent Orders</h2>
-          <OrderFormButton onSuccess={() => {
-            // Refresh orders
-            fetch(`/api/orders?page=${page}&limit=${limit}`)
-              .then(r => r.json())
-              .then(json => {
-                if (json.success) {
-                  setItems(json.data.items);
-                  setTotal(json.data.total);
-                }
-              });
-          }} />
+          <OrderFormButton
+            onSuccess={() => {
+              if (isDemo) {
+                setItems(sliceDemoOrders(page, limit));
+                return;
+              }
+              fetch(`/api/orders?page=${page}&limit=${limit}`)
+                .then((r) => r.json())
+                .then((json) => {
+                  if (json.success) {
+                    setItems(json.data.items);
+                    setTotal(json.data.total);
+                  }
+                })
+                .catch(() => {
+                  setIsDemo(true);
+                  setError("Showing demo orders");
+                  setItems(sliceDemoOrders(page, limit));
+                  setTotal(demoOrders.length);
+                });
+            }}
+          />
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ORDER ID</TableHead>
-              <TableHead>CUSTOMER</TableHead>
-              <TableHead>PRODUCT</TableHead>
-              <TableHead>DATE</TableHead>
-              <TableHead>STATUS</TableHead>
-              <TableHead className="text-right">TOTAL</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading && (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">Loading orders...</TableCell></TableRow>
-            )}
-            {error && !loading && (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-red-600">Error: {error}</TableCell></TableRow>
-            )}
-            {!loading && !error && items.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">No orders found. Create your first order!</TableCell></TableRow>
-            )}
-            {!loading && !error && items.map((order) => (
-              <TableRow key={order._id}>
-                <TableCell className="font-medium">{order._id}</TableCell>
-                <TableCell>{order.customer?.name || "-"}</TableCell>
-                <TableCell>{order.product}</TableCell>
-                <TableCell>{order.orderDate ? new Date(order.orderDate).toLocaleDateString() : new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      "px-3 py-1 text-xs font-semibold rounded-full",
-                      getStatusColor(order.status)
-                    )}
-                  >
-                    {order.status}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right font-medium">{currency(order.amount)}</TableCell>
+        <div className="-mx-4 overflow-x-auto md:mx-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ORDER ID</TableHead>
+                <TableHead>CUSTOMER</TableHead>
+                <TableHead>PRODUCT</TableHead>
+                <TableHead>DATE</TableHead>
+                <TableHead>STATUS</TableHead>
+                <TableHead className="text-right">TOTAL</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {loading && !isDemo && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
+                    Loading orders...
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && items.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
+                    No orders found. Create your first order!
+                  </TableCell>
+                </TableRow>
+              )}
+              {items.map((order) => (
+                <TableRow key={order._id}>
+                  <TableCell className="font-medium">{order._id}</TableCell>
+                  <TableCell>{order.customer?.name || "-"}</TableCell>
+                  <TableCell>{order.product}</TableCell>
+                  <TableCell>
+                    {order.orderDate
+                      ? new Date(order.orderDate).toLocaleDateString()
+                      : order.createdAt
+                      ? new Date(order.createdAt).toLocaleDateString()
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "px-3 py-1 text-xs font-semibold rounded-full",
+                        getStatusColor(order.status)
+                      )}
+                    >
+                      {order.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">{currency(order.amount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
 
         {/* Pagination */}
-        <div className="flex justify-between items-center mt-6">
+        <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-gray-600">Total: {total}</div>
           <div className="space-x-2">
-            <Button variant="outline" size="sm" disabled={page<=1} onClick={() => setPage((p)=>p-1)}>Previous</Button>
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
             <div className="inline-block text-sm font-medium">{page}</div>
-            <Button variant="outline" size="sm" disabled={(page*limit)>=total} onClick={() => setPage((p)=>p+1)}>Next</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page * limit >= total}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
           </div>
         </div>
       </div>

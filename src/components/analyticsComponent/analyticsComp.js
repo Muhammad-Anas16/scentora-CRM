@@ -17,10 +17,13 @@ import {
   Legend,
 } from "recharts";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { demoAnalytics } from "@/data/demoData";
 
 const AnalyticsComp = () => {
-  const [kpis, setKpis] = useState({ totalOrders: 0, monthlyRevenue: 0, avgOrderValue: 0, newCustomersThisWeek: 0 });
-  const [pipeline, setPipeline] = useState([]);
+  const [kpis, setKpis] = useState(demoAnalytics.kpis);
+  const [pipeline, setPipeline] = useState(demoAnalytics.pipeline);
+  const [salesTrend, setSalesTrend] = useState(demoAnalytics.salesTrend);
+  const [customerGrowth, setCustomerGrowth] = useState(demoAnalytics.customerGrowth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,11 +36,19 @@ const AnalyticsComp = () => {
         const json = await res.json();
         if (!json.success) throw new Error(json.message || 'Failed to load');
         if (!ignore) {
-          setKpis(json.data.kpis);
-          setPipeline(json.data.pipeline);
+          setKpis(json.data.kpis || demoAnalytics.kpis);
+          setPipeline(json.data.pipeline || demoAnalytics.pipeline);
+          setSalesTrend(json.data.salesTrend || demoAnalytics.salesTrend);
+          setCustomerGrowth(json.data.customerGrowth || demoAnalytics.customerGrowth);
         }
       } catch (e) {
-        if (!ignore) setError(e.message);
+        if (!ignore) {
+          setError("Showing demo analytics");
+          setKpis(demoAnalytics.kpis);
+          setPipeline(demoAnalytics.pipeline);
+          setSalesTrend(demoAnalytics.salesTrend);
+          setCustomerGrowth(demoAnalytics.customerGrowth);
+        }
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -45,25 +56,7 @@ const AnalyticsComp = () => {
     load();
     return () => { ignore = true; };
   }, []);
-  const salesData = [
-    { month: "Jan", revenue: 12000, orders: 80 },
-    { month: "Feb", revenue: 15000, orders: 95 },
-    { month: "Mar", revenue: 20000, orders: 120 },
-    { month: "Apr", revenue: 25000, orders: 130 },
-    { month: "May", revenue: 30000, orders: 160 },
-    { month: "Jun", revenue: 34000, orders: 190 },
-    { month: "Jul", revenue: 38000, orders: 210 },
-  ];
-
-  const customerGrowth = [
-    { month: "Jan", newCustomers: 20, recurring: 10 },
-    { month: "Feb", newCustomers: 30, recurring: 15 },
-    { month: "Mar", newCustomers: 40, recurring: 20 },
-    { month: "Apr", newCustomers: 50, recurring: 30 },
-    { month: "May", newCustomers: 60, recurring: 40 },
-    { month: "Jun", newCustomers: 75, recurring: 55 },
-    { month: "Jul", newCustomers: 90, recurring: 70 },
-  ];
+  const salesData = salesTrend;
 
   const revenueData = [
     { name: "Sonnet Classic", revenue: 74250 },
@@ -93,9 +86,9 @@ const AnalyticsComp = () => {
 
   // --- Main Render ---
   return (
-    <div className="p-8 bg-gray-50 min-h-screen space-y-8">
+    <div className="space-y-6 lg:space-y-8">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-white p-5 rounded-xl shadow">
           <h4 className="text-gray-500 text-sm">Total Revenue</h4>
           <p className="text-2xl font-semibold mt-1">${kpis.monthlyRevenue?.toFixed ? kpis.monthlyRevenue.toFixed(2) : kpis.monthlyRevenue}</p>
@@ -129,11 +122,15 @@ const AnalyticsComp = () => {
         </div>
       </div>
 
-      {error && <div className="text-red-600">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          {error}
+        </div>
+      )}
       {loading && <div className="text-gray-600">Loading...</div>}
 
       {/* Charts Section */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Monthly Sales */}
         <div className="bg-white p-6 rounded-xl shadow">
           <h3 className="font-medium mb-2">Monthly Sales Performance</h3>
@@ -172,28 +169,30 @@ const AnalyticsComp = () => {
       </div>
 
       {/* Top Products */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Pipeline by Stage */}
         <div className="bg-white p-6 rounded-xl shadow">
           <h3 className="font-medium mb-2">Pipeline by Stage</h3>
-          <table className="min-w-full text-sm text-left">
-            <thead className="border-b text-gray-600 text-xs uppercase">
-              <tr>
-                <th className="py-2">Stage</th>
-                <th className="py-2">Deals</th>
-                <th className="py-2">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pipeline.map((p, i) => (
-                <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="py-2">{p._id}</td>
-                  <td className="py-2">{p.total}</td>
-                  <td className="py-2">${p.value}</td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b text-xs uppercase text-gray-600">
+                <tr>
+                  <th className="py-2">Stage</th>
+                  <th className="py-2">Deals</th>
+                  <th className="py-2">Value</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pipeline.map((p, i) => (
+                  <tr key={i} className="border-t hover:bg-gray-50">
+                    <td className="py-2">{p._id}</td>
+                    <td className="py-2">{p.total}</td>
+                    <td className="py-2">${p.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Placeholder for additional insights */}
