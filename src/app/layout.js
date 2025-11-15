@@ -4,6 +4,7 @@ import LayoutWrapper from "@/components/wrapper/LayoutWrapper";
 import { ReduxProvidersWrapper } from "@/Redux/Providers";
 import { Toaster } from "@/components/ui/sonner";
 import AuthWrapper from "@/components/wrapper/AuthWrapper";
+import N8NChatBot from "@/components/chatbot/chatnot";
 
 
 const geistSans = Geist({
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
         <ReduxProvidersWrapper>
           <AuthWrapper>
             <LayoutWrapper>
+              <N8NChatBot />
               {children}
               <Toaster />
             </LayoutWrapper>
